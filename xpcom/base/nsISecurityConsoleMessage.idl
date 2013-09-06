@@ -4,15 +4,27 @@
 
 #include "nsISupports.idl"
 
+native StringArray(const PRUnichar**);
 /*
  * Holds localization message tag and message category
  * for security related console messages.
  */
-[uuid(FE9FC9B6-DDE2-11E2-A8F1-0A326188709B)]
+[scriptable, uuid(FE9FC9B6-DDE2-11E2-A8F1-0A326188709B)]
 interface nsISecurityConsoleMessage : nsISupports
 {
-  attribute AString tag;
+  attribute AString lookupKey;
   attribute AString category;
+  attribute StringArray params;
+  attribute uint32_t paramsLength;
+  attribute AString sourceLine;
+  attribute AString sourceName;
+  attribute uint32_t lineNumber;
+  attribute uint32_t columnNumber;
+
+  void init(in AString lookupKey, in AString category, in AString sourceLine,
+            in AString sourceName, in uint32_t lineNumber,
+            in uint32_t columnNumber, in StringArray params,
+            in uint32_t paramsLength);
 };
 
 %{ C++

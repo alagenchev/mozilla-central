@@ -26,6 +26,7 @@
 #include "nsIWebNavigation.h"
 #include "nsLoadGroup.h"
 #include "nsIScriptError.h"
+#include "nsISecurityConsoleService.h"
 
 #include "prlog.h"
 
@@ -158,9 +159,15 @@ LogMixedContentMessage(MixedContentTypes aClassification,
                        nsIDocument* aRootDoc,
                        nsMixedContentBlockerMessageType aMessageType)
 {
-  nsAutoCString messageCategory;
+  nsCOMPtr<nsISecurityConsoleService> console(
+      do_GetService(NS_SECURITY_CONSOLESERVICE_CONTRACTID));
+  if(!console) {
+    return;
+  }
+
+  nsAutoString messageCategory;
   uint32_t severityFlag;
-  nsAutoCString messageLookupKey;
+  nsAutoString messageLookupKey;
 
   if (aMessageType == eBlocked) {
     severityFlag = nsIScriptError::errorFlag;
@@ -185,9 +192,14 @@ LogMixedContentMessage(MixedContentTypes aClassification,
   NS_ConvertUTF8toUTF16 locationSpecUTF16(locationSpec);
 
   const PRUnichar* strings[] = { locationSpecUTF16.get() };
-  nsContentUtils::ReportToConsole(severityFlag, messageCategory, aRootDoc,
-                                  nsContentUtils::eSECURITY_PROPERTIES,
-                                  messageLookupKey.get(), strings, ArrayLength(strings));
+
+  nsCOMPtr<nsISecurityConsoleMessage> message(
+      do_CreateInstance(NS_SECURITY_CONSOLE_MESSAGE_CONTRACTID));
+
+  message->Init(messageLookupKey, messageCategory, NS_LITERAL_STRING(""),
+                NS_LITERAL_STRING(""), 0, 0, strings, ArrayLength(strings));
+  console->LogMessage(message, aRootDoc->InnerWindowID());
+
 }
 
 NS_IMETHODIMP

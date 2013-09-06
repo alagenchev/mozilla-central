@@ -27,7 +27,7 @@ let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
 
 this.InsecurePasswordUtils = {
 
-  _sendWebConsoleMessage : function (messageTag, domDoc) {
+  _sendWebConsoleMessage : function (messageLookupKey, domDoc) {
     /*
      * All web console messages are warnings for now so I decided to set the
      * flag here and save a bit of the flag creation in the callers.
@@ -37,14 +37,15 @@ this.InsecurePasswordUtils = {
     let  windowId = WebConsoleUtils.getInnerWindowId(domDoc.defaultView);
     let category = "Insecure Password Field";
     let flag = Ci.nsIScriptError.warningFlag;
-    let message = l10n.getStr(messageTag);
-    let consoleMsg = Cc["@mozilla.org/scripterror;1"]
-      .createInstance(Ci.nsIScriptError);
 
-    consoleMsg.initWithWindowID(
-      message, "", 0, 0, 0, flag, category, windowId);
+    let consoleMsg = Cc["@mozilla.org/securityconsole/message;1"]
+      .createInstance(Ci.nsISecurityConsoleMessage);
+    consoleMsg.lookupKey = messageLookupKey;
+    consoleMsg.category = category;
 
-    Services.console.logMessage(consoleMsg);
+    let consoleService = Cc["@mozilla.org/securityconsole/service;1"]
+      .createInstance(Ci.nsISecurityConsoleService);
+    consoleService.logMessage(consoleMsg, windowId);
   },
 
   /*

@@ -832,14 +832,12 @@ public:
    * Fill (with the parameters given) the localized string named |aKey| in
    * properties file |aFile|.
    */
-private:
+public:
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,
                                         const PRUnichar** aParams,
                                         uint32_t aParamsLength,
                                         nsXPIDLString& aResult);
-  
-public:
   template<uint32_t N>
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,

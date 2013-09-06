@@ -100,6 +100,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 #include "nsMemoryReporterManager.h"
 #include "nsMemoryInfoDumper.h"
 #include "nsSecurityConsoleMessage.h"
+#include "nsSecurityConsoleService.h"
 #include "nsMessageLoop.h"
 
 #include <locale.h>
@@ -213,6 +214,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsMemoryInfoDumper)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsIOUtil)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSecurityConsoleMessage)
+
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsSecurityConsoleService)
 
 static nsresult
 nsThreadManagerGetSingleton(nsISupports* outer,

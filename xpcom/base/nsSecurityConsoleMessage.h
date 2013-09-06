@@ -16,11 +16,17 @@ class nsSecurityConsoleMessage : public nsISecurityConsoleMessage
     nsSecurityConsoleMessage();
 
   private:
-    ~nsSecurityConsoleMessage();
+    virtual ~nsSecurityConsoleMessage();
 
   protected:
-    nsString mTag;
+    nsString mLookupKey;
     nsString mCategory;
+    nsString mSourceLine;
+    nsString mSourceName;
+    const PRUnichar** mParams;
+    uint32_t mParamsLength;
+    uint32_t mColumnNumber;
+    uint32_t mLineNumber;
 };
 
 #define NS_SECURITY_CONSOLE_MESSAGE_CID \

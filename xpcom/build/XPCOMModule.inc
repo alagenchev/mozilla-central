@@ -19,6 +19,7 @@
     COMPONENT(SUPPORTSARRAY, nsSupportsArray::Create)
     COMPONENT(ARRAY, nsArray::XPCOMConstructor)
     COMPONENT(CONSOLESERVICE, nsConsoleServiceConstructor)
+    COMPONENT(SECURITY_CONSOLESERVICE, nsSecurityConsoleServiceConstructor)
     COMPONENT(EXCEPTIONSERVICE, nsExceptionServiceConstructor)
     COMPONENT(ATOMSERVICE, nsAtomServiceConstructor)
     COMPONENT(OBSERVERSERVICE, nsObserverService::Create)

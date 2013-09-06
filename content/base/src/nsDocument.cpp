@@ -212,6 +212,7 @@
 #include "nsISecurityConsoleMessage.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "mozilla/dom/XPathEvaluator.h"
+#include "nsISecurityConsoleService.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2431,11 +2432,20 @@ CSPErrorQueue::Add(const char* aMessageName)
 void
 CSPErrorQueue::Flush(nsIDocument* aDocument)
 {
-  for (uint32_t i = 0; i < mErrors.Length(); i++) {
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-        NS_LITERAL_CSTRING("CSP"), aDocument,
-        nsContentUtils::eSECURITY_PROPERTIES,
-        mErrors[i]);
+  nsCOMPtr<nsISecurityConsoleService> console(do_GetService(
+        NS_SECURITY_CONSOLESERVICE_CONTRACTID));
+
+  if (console) {
+    for (uint32_t i = 0; i < mErrors.Length(); i++) {
+      nsCOMPtr<nsISecurityConsoleMessage> message(
+          do_CreateInstance(NS_SECURITY_CONSOLE_MESSAGE_CONTRACTID));
+      nsAutoString messageLookupKey;
+      messageLookupKey.Assign(NS_ConvertUTF8toUTF16(mErrors[i]));
+
+      message->SetLookupKey(messageLookupKey);
+      message->SetCategory(NS_LITERAL_STRING("CSP"));
+      console->LogMessage(message, aDocument->InnerWindowID());
+    }
   }
   mErrors.Clear();
 }
@@ -2443,17 +2453,14 @@ CSPErrorQueue::Flush(nsIDocument* aDocument)
 void
 nsDocument::SendToConsole(nsCOMArray<nsISecurityConsoleMessage>& aMessages)
 {
+  nsCOMPtr<nsISecurityConsoleService> console(
+      do_GetService(NS_SECURITY_CONSOLESERVICE_CONTRACTID));
+  if(!console) {
+    return;
+  }
+
   for (uint32_t i = 0; i < aMessages.Length(); ++i) {
-    nsAutoString messageTag;
-    aMessages[i]->GetTag(messageTag);
-
-    nsAutoString category;
-    aMessages[i]->GetCategory(category);
-
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    NS_ConvertUTF16toUTF8(category),
-                                    this, nsContentUtils::eSECURITY_PROPERTIES,
-                                    NS_ConvertUTF16toUTF8(messageTag).get());
+    console->LogMessage(aMessages[i], this->InnerWindowID());
   }
 }
 

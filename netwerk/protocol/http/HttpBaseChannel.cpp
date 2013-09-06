@@ -1314,14 +1314,14 @@ HttpBaseChannel::TakeAllSecurityMessages(
  * https://bugzilla.mozilla.org/show_bug.cgi?id=846918
  */
 NS_IMETHODIMP
-HttpBaseChannel::AddSecurityMessage(const nsAString &aMessageTag,
+HttpBaseChannel::AddSecurityMessage(const nsAString &aMessageLookupKey,
     const nsAString &aMessageCategory)
 {
   nsresult rv;
   nsCOMPtr<nsISecurityConsoleMessage> message =
     do_CreateInstance(NS_SECURITY_CONSOLE_MESSAGE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  message->SetTag(aMessageTag);
+  message->SetLookupKey(aMessageLookupKey);
   message->SetCategory(aMessageCategory);
   mSecurityConsoleMessages.AppendElement(message);
   return NS_OK;
