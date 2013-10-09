@@ -25,7 +25,35 @@ Object.defineProperty(this, "WebConsoleUtils", {
 const STRINGS_URI = "chrome://global/locale/security/security.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
 
+/*
+ var gStringBundle = Cc['@mozilla.org/intl/stringbundle;1'].
+35   getService(Ci.nsIStringBundleService).
+36   createBundle('chrome://global/locale/AccessFu.properties');
+*/
+
 this.InsecurePasswordUtils = {
+
+_sendFormattedWebConsoleMessage : function (messageTag, domDoc, formatStr) {
+    /*
+     * All web console messages are warnings for now so I decided to set the
+     * flag here and save a bit of the flag creation in the callers.
+     * It's easy to expose this later if needed
+     */
+
+    let  windowId = WebConsoleUtils.getInnerWindowId(domDoc.defaultView);
+    let category = "Insecure Password Field";
+    let flag = Ci.nsIScriptError.warningFlag;
+    let message = l10n.getFormatStr(messageTag, formatStr);
+
+
+    let consoleMsg = Cc["@mozilla.org/scripterror;1"]
+      .createInstance(Ci.nsIScriptError);
+
+    consoleMsg.initWithWindowID(
+      message, "", 0, 0, 0, flag, category, windowId);
+
+    Services.console.logMessage(consoleMsg);
+  },
 
   _sendWebConsoleMessage : function (messageTag, domDoc) {
     /*
@@ -38,6 +66,10 @@ this.InsecurePasswordUtils = {
     let category = "Insecure Password Field";
     let flag = Ci.nsIScriptError.warningFlag;
     let message = l10n.getStr(messageTag);
+
+    let testMessage = l10n.getFormatStr("LoadingInsecurePassword", ["test"]);
+    Services.console.logStringMessage("ivan: "+testMessage);
+
     let consoleMsg = Cc["@mozilla.org/scripterror;1"]
       .createInstance(Ci.nsIScriptError);
 
@@ -129,18 +161,28 @@ this.InsecurePasswordUtils = {
     let pageURI = domDoc.defaultView.top.document.documentURIObject;
     let isSafePage = this._checkIfURIisSecure(pageURI);
 
-    if (!isSafePage) {
-      this._sendWebConsoleMessage("InsecurePasswordsPresentOnPage", domDoc);
+    let uri = domDoc.documentURIObject;
+    let netutil = Cc["@mozilla.org/network/util;1"].getService(Ci.nsINetUtil);
+    let domainType = netutil.getDomainType(uri);
+    let ignoreUnsafe = (domainType != 1);
+
+    if(ignoreUnsafe) {
+      this._sendFormattedWebConsoleMessage("LoadingInsecurePassword", domDoc, [uri["spec"]]);
+    }
+
+    if (!isSafePage && !ignoreUnsafe) {//only send out messages for type 1 sites
+      this._sendFormattedWebConsoleMessage("InsecurePasswordsPresentOnPage", domDoc, [uri["spec"]]);
     }
 
     // Check if we are on an iframe with insecure src, or inside another
     // insecure iframe or document.
-    if (this._checkForInsecureNestedDocuments(domDoc)) {
-      this._sendWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc);
+    if (this._checkForInsecureNestedDocuments(domDoc) && !ignoreUnsafe) {
+      this._sendFormattedWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc, [uri["spec"]]);
     }
 
-    if (aForm.action.match(/^http:\/\//)) {
-      this._sendWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc);
+    if (aForm.action.match(/^http:\/\//) && !ignoreUnsafe) {
+      this._sendFormattedWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc,
+              [uri["spec"]]);
     }
   },
 };

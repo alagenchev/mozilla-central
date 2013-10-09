@@ -52,6 +52,8 @@ interface nsINetUtil : nsISupports
    */
   boolean URIChainHasFlags(in nsIURI aURI, in unsigned long aFlags);
 
+  uint32_t getDomainType(in nsIURI aURI);
+
   /**
    * Take aURI and produce an immutable version of it for the caller.  If aURI
    * is immutable this will be aURI itself; otherwise this will be a clone,

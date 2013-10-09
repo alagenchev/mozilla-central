@@ -1704,6 +1704,8 @@ NS_URIChainHasFlags(nsIURI   *uri,
     return util->URIChainHasFlags(uri, flags, result);
 }
 
+
+
 /**
  * Helper function for getting the innermost URI for a given URI.  The return
  * value could be just the object passed in if it's not a nested URI.

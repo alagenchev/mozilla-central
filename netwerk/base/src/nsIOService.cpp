@@ -37,6 +37,7 @@
 #include "nsPIDNSService.h"
 #include "nsIProtocolProxyService2.h"
 #include "MainThreadUtils.h"
+#include "../../../content/base/src/ArktikFox.h"
 
 #if defined(XP_WIN)
 #include "nsNativeConnectionHelper.h"
@@ -986,6 +987,25 @@ nsIOService::ProtocolHasFlags(nsIURI   *uri,
     }
   
     return rv;
+}
+
+
+NS_IMETHODIMP
+nsIOService::GetDomainType(nsIURI *aURI, uint32_t *_retval)
+{
+    alagenchev::DomainType myDomainType;
+    int isError = alagenchev::ArktikFox::GetDomainType(aURI, &myDomainType);
+    bool isHigherPrivilegeDomain = (myDomainType == alagenchev::eFinancialDomain);
+    
+    if(isHigherPrivilegeDomain)
+    {
+        *_retval = 1;
+    }
+    else
+    {
+        *_retval = 0;
+    }
+    return NS_OK;
 }
 
 NS_IMETHODIMP
