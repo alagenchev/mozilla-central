@@ -26,7 +26,7 @@
 #include "nsIWebNavigation.h"
 #include "nsLoadGroup.h"
 #include "nsIScriptError.h"
-
+#include "ArktikFox.h"
 #include "prlog.h"
 
 using namespace mozilla;
@@ -474,6 +474,23 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     return NS_OK;
   }
   nsresult stateRV = securityUI->GetState(&State);
+
+  alagenchev::DomainType myDomainType;
+  int isError = alagenchev::ArktikFox::GetDomainType(aRequestingLocation, &myDomainType);
+
+  bool isHigherPrivilegeDomain = (myDomainType == alagenchev::eFinancialDomain);
+
+  if(isHigherPrivilegeDomain)
+  {
+      sBlockMixedDisplay = true;
+      sBlockMixedScript = true;
+      allowMixedContent = false;
+  }
+
+  if(isError)
+  {
+      return NS_ERROR_FAILURE;
+  }
 
   // If the content is display content, and the pref says display content should be blocked, block it.
   if (sBlockMixedDisplay && classification == eMixedDisplay) {
