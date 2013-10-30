@@ -164,7 +164,7 @@ namespace alagenchev {
                 rv = dbFile->InitWithPath(currentDir);
                 NS_ENSURE_SUCCESS(rv, rv);
 
-                rv = dbFile->Append(NS_LITERAL_STRING("websites.sqlite"));
+                rv = dbFile->AppendRelativePath(NS_LITERAL_STRING("database/websites.sqlite"));
                 NS_ENSURE_SUCCESS(rv, rv);
 
                 NS_ADDREF(*aOutDBFile = dbFile);
