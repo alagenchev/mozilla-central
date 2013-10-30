@@ -994,7 +994,14 @@ NS_IMETHODIMP
 nsIOService::GetDomainType(nsIURI *aURI, uint32_t *_retval)
 {
     alagenchev::DomainType myDomainType;
-    int isError = alagenchev::ArktikFox::GetDomainType(aURI, &myDomainType);
+    nsresult rv = alagenchev::ArktikFox::GetDomainType(aURI, &myDomainType);
+
+    if(NS_FAILED(rv))
+    {
+        *_retval = 0;
+        return NS_ERROR_FAILURE;
+    }
+
     bool isHigherPrivilegeDomain = (myDomainType == alagenchev::eFinancialDomain);
     
     if(isHigherPrivilegeDomain)
