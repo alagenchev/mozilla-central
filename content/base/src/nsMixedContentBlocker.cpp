@@ -33,7 +33,9 @@ using namespace mozilla;
 
 enum nsMixedContentBlockerMessageType {
   eBlocked = 0x00,
-  eUserOverride = 0x01
+  eUserOverride = 0x01,
+  eArktikFoxBlocked = 0x10,
+  eArktikFoxNotSensitive = 0x11,
 };
 
 // Is mixed script blocking (fonts, plugin content, scripts, stylesheets,
@@ -170,7 +172,22 @@ LogMixedContentMessage(MixedContentTypes aClassification,
     } else {
       messageLookupKey.AssignLiteral("BlockMixedActiveContent");
     }
-  } else {
+  } else if (aMessageType == eArktikFoxBlocked) {
+
+      messageLookupKey.AssignLiteral("ArktikFoxBlockThirdParty");
+      messageCategory.AssignLiteral("Mixed Content Message");
+  }
+  else if( aMessageType == eArktikFoxNotSensitive) {
+      if(aClassification == eMixedDisplay) {
+          messageLookupKey.AssignLiteral("ArktikFoxNotSensitiveDisplay");
+      }
+      else
+      {
+          messageLookupKey.AssignLiteral("ArktikFoxNotSensitiveScript");
+      }
+      messageCategory.AssignLiteral("Mixed Content Message");
+  }
+  else {
     severityFlag = nsIScriptError::warningFlag;
     messageCategory.AssignLiteral("Mixed Content Message");
     if (aClassification == eMixedDisplay) {
@@ -327,6 +344,87 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   *   "moz-safe-about"
   *
   */
+
+  bool allowMixedContent = false;
+
+  nsAutoCString requestingLocationSpec;
+  aRequestingLocation->GetSpec(requestingLocationSpec);
+
+  alagenchev::DomainType myDomainType;
+
+  nsresult rv = alagenchev::ArktikFox::GetDomainType(aRequestingLocation, &myDomainType);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
+  NS_ENSURE_TRUE(docShell, NS_OK);
+
+  // Get the sameTypeRoot tree item from the docshell
+  nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
+  docShell->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
+  NS_ASSERTION(sameTypeRoot, "No root tree item from docshell!");
+  // Get the root document from the sameTypeRoot
+  nsCOMPtr<nsIDocument> rootDoc = do_GetInterface(sameTypeRoot);
+  NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
+
+  bool parentIsHttps;
+  rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool isHigherPrivilegeDomain = (myDomainType == alagenchev::eFinancialDomain);
+  if(isHigherPrivilegeDomain)
+  {
+      bool isThirdParty = false;
+
+      rv = alagenchev::ArktikFox::IsThirdPartyContent(aRequestingLocation, aContentLocation,
+              isThirdParty);
+
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if(isThirdParty)
+      {
+          LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxBlocked);
+          *aDecision = REJECT_REQUEST;
+          return NS_OK;
+      }
+
+      sBlockMixedDisplay = true;
+      sBlockMixedScript = true;
+      allowMixedContent = false;
+
+      /*
+      *aDecision = nsIContentPolicy::REJECT_REQUEST;
+      LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
+
+      return NS_OK;
+      */
+
+  }
+  else
+  {
+      if(parentIsHttps)
+      {
+          bool schemeLocal = false;
+          bool schemeNoReturnData = false;
+          bool schemeInherits = false;
+          bool schemeSecure = false;
+          if (NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
+                  NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA, &schemeNoReturnData)) ||
+                  NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &schemeInherits)) ||
+                  NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_SAFE_TO_LOAD_IN_SECURE_CONTEXT, &schemeSecure))) {
+              return NS_ERROR_FAILURE;
+          }
+
+          if (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure) {
+
+              *aDecision = ACCEPT;
+              return NS_OK;
+          }
+          LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxNotSensitive);
+      }
+      *aDecision = ACCEPT;
+      return NS_OK;
+  }
+
   bool schemeLocal = false;
   bool schemeNoReturnData = false;
   bool schemeInherits = false;
@@ -386,8 +484,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
 
   // Check the parent scheme. If it is not an HTTPS page then mixed content
   // restrictions do not apply.
-  bool parentIsHttps;
-  nsresult rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
+  rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
   if (NS_FAILED(rv)) {
     NS_ERROR("aRequestingLocation->SchemeIs failed");
     *aDecision = REJECT_REQUEST;
@@ -399,10 +496,9 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
 
   // Determine if the rootDoc is https and if the user decided to allow Mixed Content
-  nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
+  docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
   NS_ENSURE_TRUE(docShell, NS_OK);
   bool rootHasSecureConnection = false;
-  bool allowMixedContent = false;
   bool isRootDocShell = false;
   rv = docShell->GetAllowMixedContentAndConnectionData(&rootHasSecureConnection, &allowMixedContent, &isRootDocShell);
   if (NS_FAILED(rv)) {
@@ -411,7 +507,6 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
 
 
   // Get the sameTypeRoot tree item from the docshell
-  nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
   docShell->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
   NS_ASSERTION(sameTypeRoot, "No root tree item from docshell!");
 
@@ -456,7 +551,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
 
   // Get the root document from the sameTypeRoot
-  nsCOMPtr<nsIDocument> rootDoc = do_GetInterface(sameTypeRoot);
+  rootDoc = do_GetInterface(sameTypeRoot);
   NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
 
   // Get eventSink and the current security state from the docShell
@@ -474,23 +569,6 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     return NS_OK;
   }
   nsresult stateRV = securityUI->GetState(&State);
-
-  alagenchev::DomainType myDomainType;
-  int isError = alagenchev::ArktikFox::GetDomainType(aRequestingLocation, &myDomainType);
-
-  bool isHigherPrivilegeDomain = (myDomainType == alagenchev::eFinancialDomain);
-
-  if(isHigherPrivilegeDomain)
-  {
-      sBlockMixedDisplay = true;
-      sBlockMixedScript = true;
-      allowMixedContent = false;
-  }
-
-  if(isError)
-  {
-      return NS_ERROR_FAILURE;
-  }
 
   // If the content is display content, and the pref says display content should be blocked, block it.
   if (sBlockMixedDisplay && classification == eMixedDisplay) {
