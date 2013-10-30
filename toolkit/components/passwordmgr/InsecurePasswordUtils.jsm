@@ -68,7 +68,6 @@ _sendFormattedWebConsoleMessage : function (messageTag, domDoc, formatStr) {
     let message = l10n.getStr(messageTag);
 
     let testMessage = l10n.getFormatStr("LoadingInsecurePassword", ["test"]);
-    Services.console.logStringMessage("ivan: "+testMessage);
 
     let consoleMsg = Cc["@mozilla.org/scripterror;1"]
       .createInstance(Ci.nsIScriptError);
@@ -166,9 +165,7 @@ _sendFormattedWebConsoleMessage : function (messageTag, domDoc, formatStr) {
     let domainType = netutil.getDomainType(uri);
     let ignoreUnsafe = (domainType != 1);
 
-    if(ignoreUnsafe) {
-      this._sendFormattedWebConsoleMessage("LoadingInsecurePassword", domDoc, [uri["spec"]]);
-    }
+    
 
     if (!isSafePage && !ignoreUnsafe) {//only send out messages for type 1 sites
       this._sendFormattedWebConsoleMessage("InsecurePasswordsPresentOnPage", domDoc, [uri["spec"]]);
@@ -176,13 +173,26 @@ _sendFormattedWebConsoleMessage : function (messageTag, domDoc, formatStr) {
 
     // Check if we are on an iframe with insecure src, or inside another
     // insecure iframe or document.
-    if (this._checkForInsecureNestedDocuments(domDoc) && !ignoreUnsafe) {
+    let isInsecureIFrame = this._checkForInsecureNestedDocuments(domDoc);
+
+    if (isInsecureIFrame && !ignoreUnsafe) {
       this._sendFormattedWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc, [uri["spec"]]);
     }
 
-    if (aForm.action.match(/^http:\/\//) && !ignoreUnsafe) {
+    let isInsecureForm = aForm.action.match(/^http:\/\//);
+    if (isInsecureForm && !ignoreUnsafe) {
       this._sendFormattedWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc,
               [uri["spec"]]);
+    }
+    
+    if(ignoreUnsafe && !isSafePage ) {
+      this._sendFormattedWebConsoleMessage("LoadingInsecurePassword", domDoc, [uri["spec"]]);
+    }
+    if (ignoreUnsafe && isInsecureForm ) {
+      this._sendFormattedWebConsoleMessage("LoadingInsecurePasswordForm", domDoc, [uri["spec"]]);
+    }
+    if ( ignoreUnsafe &&isInsecureIFrame) {
+      this._sendFormattedWebConsoleMessage("LoadingInsecurePasswordIFrame", domDoc, [uri["spec"]]);
     }
   },
 };
