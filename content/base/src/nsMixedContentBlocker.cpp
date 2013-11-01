@@ -156,6 +156,7 @@ NS_IMPL_ISUPPORTS1(nsMixedContentBlocker, nsIContentPolicy)
 
 static void
 LogMixedContentMessage(MixedContentTypes aClassification,
+                       nsIURI* aRequestingLocation,
                        nsIURI* aContentLocation,
                        nsIDocument* aRootDoc,
                        nsMixedContentBlockerMessageType aMessageType)
@@ -197,11 +198,21 @@ LogMixedContentMessage(MixedContentTypes aClassification,
     }
   }
 
-  nsAutoCString locationSpec;
-  aContentLocation->GetSpec(locationSpec);
-  NS_ConvertUTF8toUTF16 locationSpecUTF16(locationSpec);
+  nsAutoCString resourceSpec;
+  aContentLocation->GetSpec(resourceSpec);
+  
+  nsAutoCString mainDomainSpec;
+  aRequestingLocation->GetSpec(mainDomainSpec);
 
-  const PRUnichar* strings[] = { locationSpecUTF16.get() };
+  nsAutoCString temp;
+  temp.Append(" requester: ");
+  temp.Append(mainDomainSpec);
+  temp.Append(" resource: ");
+  temp.Append(resourceSpec);
+  NS_ConvertUTF8toUTF16 tempUTF16(temp);
+
+  const PRUnichar* strings[] = {tempUTF16.get()};
+
   nsContentUtils::ReportToConsole(severityFlag, messageCategory, aRootDoc,
                                   nsContentUtils::eSECURITY_PROPERTIES,
                                   messageLookupKey.get(), strings, ArrayLength(strings));
@@ -370,16 +381,11 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   if (!parentIsHttps) {
       *aDecision = ACCEPT;
 
-      //LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxNotSensitive);
       return NS_OK;
   }
 
   bool allowMixedContent = false;
 
-  /*
-  nsAutoCString requestingLocationSpec;
-  aRequestingLocation->GetSpec(requestingLocationSpec);
-*/
   alagenchev::DomainType myDomainType;
 
   rv = alagenchev::ArktikFox::GetDomainType(aRequestingLocation, &myDomainType);
@@ -397,7 +403,9 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
 
       if(isThirdParty)
       {
-          LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxBlocked);
+          LogMixedContentMessage(classification,aRequestingLocation,
+                  aContentLocation, rootDoc, eArktikFoxBlocked);
+
           *aDecision = REJECT_REQUEST;
           return NS_OK;
       }
@@ -406,37 +414,13 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
       sBlockMixedScript = true;
       allowMixedContent = false;
 
-      /*
-      *aDecision = nsIContentPolicy::REJECT_REQUEST;
-      LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
-
-      return NS_OK;
-      */
-
   }
   else
   {
       *aDecision = ACCEPT;
 
-      LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxNotSensitive);
+      LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eArktikFoxNotSensitive);
       return NS_OK;
-      /*
-         bool schemeLocal = false;
-         bool schemeNoReturnData = false;
-         bool schemeInherits = false;
-         bool schemeSecure = false;
-         if (NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
-         NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA, &schemeNoReturnData)) ||
-         NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &schemeInherits)) ||
-         NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_SAFE_TO_LOAD_IN_SECURE_CONTEXT, &schemeSecure))) {
-         return NS_ERROR_FAILURE;
-         }
-
-         if (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure) {
-
-       *aDecision = ACCEPT;
-       return NS_OK;
-       }*/
   }
 
   bool schemeLocal = false;
@@ -576,7 +560,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   // If the content is display content, and the pref says display content should be blocked, block it.
   if (sBlockMixedDisplay && classification == eMixedDisplay) {
     if (allowMixedContent) {
-      LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
+      LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eUserOverride);
       *aDecision = nsIContentPolicy::ACCEPT;
       rootDoc->SetHasMixedActiveContentLoaded(true);
       if (!rootDoc->GetHasMixedDisplayContentLoaded() && NS_SUCCEEDED(stateRV)) {
@@ -585,7 +569,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
       }
     } else {
       *aDecision = nsIContentPolicy::REJECT_REQUEST;
-      LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
+      LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eBlocked);
       if (!rootDoc->GetHasMixedDisplayContentBlocked() && NS_SUCCEEDED(stateRV)) {
         rootDoc->SetHasMixedDisplayContentBlocked(true);
         eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_BLOCKED_MIXED_DISPLAY_CONTENT));
@@ -597,7 +581,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     // If the content is active content, and the pref says active content should be blocked, block it
     // unless the user has choosen to override the pref
     if (allowMixedContent) {
-       LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
+       LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eUserOverride);
        *aDecision = nsIContentPolicy::ACCEPT;
        // See if the pref will change here. If it will, only then do we need to call OnSecurityChange() to update the UI.
        if (rootDoc->GetHasMixedActiveContentLoaded()) {
@@ -628,7 +612,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     } else {
        //User has not overriden the pref by Disabling protection. Reject the request and update the security state.
        *aDecision = nsIContentPolicy::REJECT_REQUEST;
-       LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
+       LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eBlocked);
        // See if the pref will change here. If it will, only then do we need to call OnSecurityChange() to update the UI.
        if (rootDoc->GetHasMixedActiveContentBlocked()) {
          return NS_OK;
@@ -647,7 +631,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     // The content is not blocked by the mixed content prefs.
 
     // Log a message that we are loading mixed content.
-    LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
+    LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eUserOverride);
 
     // Fire the event from a script runner as it is unsafe to run script
     // from within ShouldLoad
