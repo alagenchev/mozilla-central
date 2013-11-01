@@ -344,16 +344,10 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   *   "moz-safe-about"
   *
   */
-
-  bool allowMixedContent = false;
-
-  nsAutoCString requestingLocationSpec;
-  aRequestingLocation->GetSpec(requestingLocationSpec);
-
-  alagenchev::DomainType myDomainType;
-
-  nsresult rv = alagenchev::ArktikFox::GetDomainType(aRequestingLocation, &myDomainType);
-  NS_ENSURE_SUCCESS(rv, rv);
+// Check the parent scheme. If it is not an HTTPS page then mixed content
+  // restrictions do not apply.
+  //
+  bool parentIsHttps;
 
   nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
   NS_ENSURE_TRUE(docShell, NS_OK);
@@ -363,11 +357,32 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   docShell->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
   NS_ASSERTION(sameTypeRoot, "No root tree item from docshell!");
   // Get the root document from the sameTypeRoot
+
   nsCOMPtr<nsIDocument> rootDoc = do_GetInterface(sameTypeRoot);
   NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
 
-  bool parentIsHttps;
-  rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
+  nsresult rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
+  if (NS_FAILED(rv)) {
+    NS_ERROR("aRequestingLocation->SchemeIs failed");
+    *aDecision = REJECT_REQUEST;
+    return NS_OK;
+  }
+  if (!parentIsHttps) {
+      *aDecision = ACCEPT;
+
+      //LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxNotSensitive);
+      return NS_OK;
+  }
+
+  bool allowMixedContent = false;
+
+  /*
+  nsAutoCString requestingLocationSpec;
+  aRequestingLocation->GetSpec(requestingLocationSpec);
+*/
+  alagenchev::DomainType myDomainType;
+
+  rv = alagenchev::ArktikFox::GetDomainType(aRequestingLocation, &myDomainType);
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool isHigherPrivilegeDomain = (myDomainType == alagenchev::eFinancialDomain);
@@ -401,28 +416,27 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
   else
   {
-      if(parentIsHttps)
-      {
-          bool schemeLocal = false;
-          bool schemeNoReturnData = false;
-          bool schemeInherits = false;
-          bool schemeSecure = false;
-          if (NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
-                  NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA, &schemeNoReturnData)) ||
-                  NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &schemeInherits)) ||
-                  NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_SAFE_TO_LOAD_IN_SECURE_CONTEXT, &schemeSecure))) {
-              return NS_ERROR_FAILURE;
-          }
-
-          if (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure) {
-
-              *aDecision = ACCEPT;
-              return NS_OK;
-          }
-          LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxNotSensitive);
-      }
       *aDecision = ACCEPT;
+
+      LogMixedContentMessage(classification, aContentLocation, rootDoc, eArktikFoxNotSensitive);
       return NS_OK;
+      /*
+         bool schemeLocal = false;
+         bool schemeNoReturnData = false;
+         bool schemeInherits = false;
+         bool schemeSecure = false;
+         if (NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
+         NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA, &schemeNoReturnData)) ||
+         NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &schemeInherits)) ||
+         NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_SAFE_TO_LOAD_IN_SECURE_CONTEXT, &schemeSecure))) {
+         return NS_ERROR_FAILURE;
+         }
+
+         if (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure) {
+
+       *aDecision = ACCEPT;
+       return NS_OK;
+       }*/
   }
 
   bool schemeLocal = false;
@@ -482,18 +496,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     }
   }
 
-  // Check the parent scheme. If it is not an HTTPS page then mixed content
-  // restrictions do not apply.
-  rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
-  if (NS_FAILED(rv)) {
-    NS_ERROR("aRequestingLocation->SchemeIs failed");
-    *aDecision = REJECT_REQUEST;
-    return NS_OK;
-  }
-  if (!parentIsHttps) {
-    *aDecision = ACCEPT;
-    return NS_OK;
-  }
+  
 
   // Determine if the rootDoc is https and if the user decided to allow Mixed Content
   docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
