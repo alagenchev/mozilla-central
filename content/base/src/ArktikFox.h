@@ -23,8 +23,8 @@ namespace alagenchev {
             static nsresult IsThirdPartyContent(nsCOMPtr<nsIURI> aRequestingLocation,
                     nsCOMPtr<nsIURI> aContentLocation, bool &aIsThirdPartyContent)
             {
-                nsAutoCString requestingLocationSpec;
-                aRequestingLocation->GetSpec(requestingLocationSpec);
+                nsAutoCString host;
+                aRequestingLocation->GetHost(host);
 
                 nsCOMPtr<nsIFile> dbFile;
                 nsresult rv = getDBFile(getter_AddRefs(dbFile));
@@ -43,9 +43,9 @@ namespace alagenchev {
                 }
                 NS_ENSURE_SUCCESS(rv, rv);
                 nsAutoCString query;
-                query.Assign("select id from websites where domain='");
-                query.Append(requestingLocationSpec);
-                query.Append("';");
+                query.Assign("select id from websites where domain like '%");
+                query.Append(host);
+                query.Append("%';");
 
                 nsCOMPtr<mozIStorageStatement> statement;
                 rv = dbConn->CreateStatement(query, getter_AddRefs(statement));
@@ -67,8 +67,6 @@ namespace alagenchev {
 
                 rv = dbConn->CreateStatement(query, getter_AddRefs(statement));
                 nsAutoString domain;
-                nsAutoCString contentLocationSpec;
-                aContentLocation->GetSpec(contentLocationSpec);
                 nsAutoCString contentHost;
                 aContentLocation->GetHost(contentHost);
 
@@ -96,13 +94,13 @@ namespace alagenchev {
             static nsresult GetDomainType(nsCOMPtr<nsIURI> aURI, DomainType *type) {
 
                 nsresult rv;
-                nsAutoCString spec;
-                aURI->GetSpec(spec);
+                nsAutoCString host;
+                aURI->GetHost(host);
 
                 nsAutoCString query;
-                query.Assign("select count(1) as COUNT from websites where domain='");
-                query.Append(spec);
-                query.Append("';");
+                query.Assign("select count(1) as COUNT from websites where domain like '%");
+                query.Append(host);
+                query.Append("%';");
 
                 nsCOMPtr<mozIStorageService> dbService =
                     do_GetService("@mozilla.org/storage/service;1", &rv);
