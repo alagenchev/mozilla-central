@@ -23,8 +23,27 @@ namespace alagenchev {
             static nsresult IsThirdPartyContent(nsCOMPtr<nsIURI> aRequestingLocation,
                     nsCOMPtr<nsIURI> aContentLocation, bool &aIsThirdPartyContent)
             {
+
+                nsAutoString domain;
                 nsAutoCString host;
+                nsAutoCString contentHost;
                 aRequestingLocation->GetHost(host);
+                aContentLocation->GetHost(contentHost);
+                
+                nsAutoCString spec;
+                aContentLocation->GetSpec(spec);
+                if(spec.Find("resource://gre-resources", true, 0, -1) > -1 ||
+                   spec.Find("javascript:void(false)", true, 0, -1) > -1 ||
+                   spec.Find("about:blank", true, 0, -1) > -1 ||
+                   spec.Find("data:", true, 0, -1) > -1 ||
+                   spec.Find("javascript:parent.emptyFile", true, 0, -1) > -1 ||
+                   spec.Find("javascript:", true, 0, -1) > -1 ||
+                   spec.Find(host, true, 0, -1) > -1)
+                {
+                    aIsThirdPartyContent = false;
+                    return NS_OK;
+                }
+                
 
                 nsCOMPtr<nsIFile> dbFile;
                 nsresult rv = getDBFile(getter_AddRefs(dbFile));
@@ -66,9 +85,7 @@ namespace alagenchev {
 
 
                 rv = dbConn->CreateStatement(query, getter_AddRefs(statement));
-                nsAutoString domain;
-                nsAutoCString contentHost;
-                aContentLocation->GetHost(contentHost);
+                
 
                 while(NS_SUCCEEDED(statement->ExecuteStep(&hasMoreData)) && hasMoreData) {
                     rv = statement->GetString(1, domain);
