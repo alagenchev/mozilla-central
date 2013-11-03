@@ -205,10 +205,10 @@ LogMixedContentMessage(MixedContentTypes aClassification,
   aRequestingLocation->GetSpec(mainDomainSpec);
 
   nsAutoCString temp;
+  temp.Append("resource: ");
+  temp.Append(resourceSpec);
   temp.Append(" requester: ");
   temp.Append(mainDomainSpec);
-  temp.Append(" resource: ");
-  temp.Append(resourceSpec);
   NS_ConvertUTF8toUTF16 tempUTF16(temp);
 
   const PRUnichar* strings[] = {tempUTF16.get()};
@@ -418,8 +418,14 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   else
   {
       *aDecision = ACCEPT;
+      bool resourceIsHttps = false;
+      aContentLocation->SchemeIs("https", &resourceIsHttps);
 
-      LogMixedContentMessage(classification,aRequestingLocation, aContentLocation, rootDoc, eArktikFoxNotSensitive);
+      if(!resourceIsHttps)
+      {
+          LogMixedContentMessage(classification,aRequestingLocation, aContentLocation,
+                  rootDoc, eArktikFoxNotSensitive);
+      }
       return NS_OK;
   }
 
