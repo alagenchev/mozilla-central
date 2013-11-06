@@ -847,6 +847,8 @@ js_str_charAt(JSContext *cx, unsigned argc, Value *vp)
     size_t i;
     if (args.thisv().isString() && args.length() != 0 && args[0].isInt32()) {
         str = args.thisv().toString();
+        if (JS_UNLIKELY(str->isTainted()))
+            abort();
         i = size_t(args[0].toInt32());
         if (i >= str->length())
             goto out_of_range;
@@ -854,6 +856,8 @@ js_str_charAt(JSContext *cx, unsigned argc, Value *vp)
         str = ThisToStringForStringProto(cx, args);
         if (!str)
             return false;
+    if (JS_UNLIKELY(str->isTainted()))
+            abort();
 
         double d = 0.0;
         if (args.length() > 0 && !ToInteger(cx, args[0], &d))
@@ -867,6 +871,10 @@ js_str_charAt(JSContext *cx, unsigned argc, Value *vp)
     str = cx->runtime()->staticStrings.getUnitStringForElement(cx, str, i);
     if (!str)
         return false;
+    if (JS_UNLIKELY(str->isTainted()))
+            abort();
+
+
     args.rval().setString(str);
     return true;
 

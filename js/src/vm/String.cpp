@@ -383,6 +383,13 @@ js::ConcatStrings(ThreadSafeContext *cx,
     JS_ASSERT_IF(!left->isAtom(), cx->isInsideCurrentZone(left));
     JS_ASSERT_IF(!right->isAtom(), cx->isInsideCurrentZone(right));
 
+    if (JS_UNLIKELY(left->isTainted()))
+            abort();
+    if (JS_UNLIKELY(right->isTainted()))
+            abort();
+
+
+
     size_t leftLen = left->length();
     if (leftLen == 0)
         return right;
@@ -410,10 +417,17 @@ js::ConcatStrings(ThreadSafeContext *cx,
         PodCopy(buf + leftLen, rightInspector.chars(), rightLen);
 
         buf[wholeLength] = 0;
+    if (JS_UNLIKELY(str->isTainted()))
+            abort();
+
+
         return str;
     }
 
-    return JSRope::new_<allowGC>(cx, left, right, wholeLength);
+    JSString *str =  JSRope::new_<allowGC>(cx, left, right, wholeLength);
+    if (JS_UNLIKELY(str->isTainted()))
+            abort();
+    return str;
 }
 
 template JSString *

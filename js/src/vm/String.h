@@ -398,6 +398,11 @@ class JSString : public js::gc::BarrieredCell<JSString>
         return *(JSAtom *)this;
     }
 
+    JS_ALWAYS_INLINE
+    bool isTainted() const {
+        return (d.lengthAndFlags & JS_BIT(32 - LENGTH_SHIFT - 1));
+    }
+
     /* Only called by the GC for dependent or undepended strings. */
 
     inline bool hasBase() const {
