@@ -19,6 +19,7 @@
     COMPONENT(SUPPORTSARRAY, nsSupportsArray::Create)
     COMPONENT(ARRAY, nsArray::XPCOMConstructor)
     COMPONENT(CONSOLESERVICE, nsConsoleServiceConstructor)
+    COMPONENT(INSECURE_PASSWORD_NOTIFICATION, nsInsecurePasswordNotificationConstructor)
     COMPONENT(ATOMSERVICE, nsAtomServiceConstructor)
     COMPONENT(OBSERVERSERVICE, nsObserverService::Create)
 #ifdef MOZ_VISUAL_EVENT_TRACER

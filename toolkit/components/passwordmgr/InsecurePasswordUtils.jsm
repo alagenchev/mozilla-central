@@ -125,21 +125,36 @@ this.InsecurePasswordUtils = {
    * a log message is sent to the web console to warn developers.
    */
   checkForInsecurePasswords : function (aForm) {
-    var domDoc = aForm.ownerDocument;
+    let domDoc = aForm.ownerDocument;
     let pageURI = domDoc.defaultView.top.document.documentURIObject;
     let isSafePage = this._checkIfURIisSecure(pageURI);
 
     if (!isSafePage) {
+      let notification = Cc["@mozilla.org/insecurepassword/notification;1"]
+      .createInstance(Ci.nsIInsecurePasswordNotification);
+      notification.init("page", pageURI.spec);
+      Services.obs.notifyObservers(notification, "insecure-password-detected", null);
+
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnPage", domDoc);
     }
 
     // Check if we are on an iframe with insecure src, or inside another
     // insecure iframe or document.
     if (this._checkForInsecureNestedDocuments(domDoc)) {
+      let notification = Cc["@mozilla.org/insecurepassword/notification;1"]
+      .createInstance(Ci.nsIInsecurePasswordNotification);
+      notification.init("iframe", pageURI.spec);
+      Services.obs.notifyObservers(notification, "insecure-password-detected", null);
+
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc);
     }
 
     if (aForm.action.match(/^http:\/\//)) {
+      let notification = Cc["@mozilla.org/insecurepassword/notification;1"]
+      .createInstance(Ci.nsIInsecurePasswordNotification);
+      notification.init("form", aForm.action);
+
+      Services.obs.notifyObservers(notification, "insecure-password-detected", null);
       this._sendWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc);
     }
   },

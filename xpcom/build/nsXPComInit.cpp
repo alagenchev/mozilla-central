@@ -83,6 +83,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 
 #include "nsUUIDGenerator.h"
 
+
 #include "nsIOUtil.h"
 
 #include "SpecialSystemDirectory.h"
@@ -99,6 +100,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 #include "nsMemoryReporterManager.h"
 #include "nsMemoryInfoDumper.h"
 #include "nsSecurityConsoleMessage.h"
+#include "nsInsecurePasswordNotification.h"
 #include "nsMessageLoop.h"
 
 #include <locale.h>
@@ -130,6 +132,8 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 #include "GeckoProfiler.h"
 
 #include "jsapi.h"
+
+#include "nsInsecurePasswordNotification.h"
 
 using namespace mozilla;
 using base::AtExitManager;
@@ -208,6 +212,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsSystemInfo, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsMemoryReporterManager, Init)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsMemoryInfoDumper)
+
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsInsecurePasswordNotification)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsIOUtil)
 
