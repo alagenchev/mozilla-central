@@ -130,31 +130,19 @@ this.InsecurePasswordUtils = {
     let isSafePage = this._checkIfURIisSecure(pageURI);
 
     if (!isSafePage) {
-      let notification = Cc["@mozilla.org/insecurepassword/notification;1"]
-      .createInstance(Ci.nsIInsecurePasswordNotification);
-      notification.init("page", pageURI.spec);
-      Services.obs.notifyObservers(notification, "insecure-password-detected", null);
-
+      Services.obs.notifyObservers(domDoc, "insecure-password-detected", "page");
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnPage", domDoc);
     }
 
     // Check if we are on an iframe with insecure src, or inside another
     // insecure iframe or document.
     if (this._checkForInsecureNestedDocuments(domDoc)) {
-      let notification = Cc["@mozilla.org/insecurepassword/notification;1"]
-      .createInstance(Ci.nsIInsecurePasswordNotification);
-      notification.init("iframe", pageURI.spec);
-      Services.obs.notifyObservers(notification, "insecure-password-detected", null);
-
+      Services.obs.notifyObservers(notification, "insecure-password-detected", "iframe");
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc);
     }
 
     if (aForm.action.match(/^http:\/\//)) {
-      let notification = Cc["@mozilla.org/insecurepassword/notification;1"]
-      .createInstance(Ci.nsIInsecurePasswordNotification);
-      notification.init("form", aForm.action);
-
-      Services.obs.notifyObservers(notification, "insecure-password-detected", null);
+      Services.obs.notifyObservers(domDoc, "insecure-password-detected", "form");
       this._sendWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc);
     }
   },
