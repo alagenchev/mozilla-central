@@ -137,7 +137,7 @@ this.InsecurePasswordUtils = {
     // Check if we are on an iframe with insecure src, or inside another
     // insecure iframe or document.
     if (this._checkForInsecureNestedDocuments(domDoc)) {
-      Services.obs.notifyObservers(notification, "insecure-password-detected", "iframe");
+      Services.obs.notifyObservers(domDoc, "insecure-password-detected", "iframe");
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc);
     }
 
