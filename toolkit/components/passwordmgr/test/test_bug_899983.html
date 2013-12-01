@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Bug 899983 - Add an obeserver topic to share that a page includes Insecure Password fields</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="pwmgr_common.js"></script>
+  <script type="text/javascript" src="notification_common.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+Insecure Password Fields Tests
+<p id="display"></p>
+
+<div id="content" style="display: none">
+<p>This page is served with an iframe with insecure password field.</p>
+    <iframe src
+      ="http://example.com/browser/browser/devtools/webconsole/test/test-iframe-762593-insecure-frame.html">
+    </iframe>
+</div>
+
+<pre id="test">
+<script class="testbody" type="text/javascript">
+const Cc = SpecialPowers.Cc;
+const Ci = SpecialPowers.Ci;
+
+/** Test for Insecure Password Fields Observer notification. **/
+var receivedPageWarning = false;
+var receivedIFrameWarning = false;
+var receivedFormWarning = false;
+
+var observer = {
+    observe: function observe(aSubject, aTopic, aData) {
+        aSubject = aSubject.QueryInterface(Ci.nsIDOMDocument);
+        ok(aSubject != null, "a nsIDOMDocument subject was passed");
+        if ("page" == aData) {
+            receivedPageWarning = true;
+        }
+        else if ("iframe" == aData) {
+            receivedIFrameWarning = true;
+        }
+        else if ("form" == aData) {
+            receivedFormWarning = true;
+        }
+    }
+};
+
+SpecialPowers.addObserver(observer, "insecure-password-detected", false);
+
+function startTest() {
+    is(receivedPageWarning, true, "received page warning");
+    is(receivedIFrameWarning, true, "received iframe warning");
+    is(receivedFormWarning, true, "received form warning");
+    SimpleTest.finish();
+}
+
+window.onload = startTest;
+
+SimpleTest.waitForExplicitFinish();
+</script>
+</pre>
+</body>
+</html>
