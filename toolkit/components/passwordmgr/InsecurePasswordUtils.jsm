@@ -130,19 +130,19 @@ this.InsecurePasswordUtils = {
     let isSafePage = this._checkIfURIisSecure(pageURI);
 
     if (!isSafePage) {
-      Services.obs.notifyObservers(domDoc, "insecure-password-detected", "page");
+      Services.obs.notifyObservers(domDoc, "insecure-password-field-detected", "page");
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnPage", domDoc);
     }
 
     // Check if we are on an iframe with insecure src, or inside another
     // insecure iframe or document.
     if (this._checkForInsecureNestedDocuments(domDoc)) {
-      Services.obs.notifyObservers(domDoc, "insecure-password-detected", "iframe");
+      Services.obs.notifyObservers(domDoc, "insecure-password-field-detected", "iframe");
       this._sendWebConsoleMessage("InsecurePasswordsPresentOnIframe", domDoc);
     }
 
     if (aForm.action.match(/^http:\/\//)) {
-      Services.obs.notifyObservers(domDoc, "insecure-password-detected", "form");
+      Services.obs.notifyObservers(domDoc, "insecure-password-field-detected", "form");
       this._sendWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc);
     }
   },
