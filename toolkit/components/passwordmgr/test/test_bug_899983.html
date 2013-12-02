@@ -29,20 +29,23 @@ var receivedIFrameWarning = false;
 var receivedFormWarning = false;
 
 var observer = {
-    observe: function observe(aSubject, aTopic, aData) {
-        aSubject = aSubject.QueryInterface(Ci.nsIDOMDocument);
-        ok(aSubject != null, "a nsIDOMDocument subject was passed");
-        if ("page" == aData) {
-            receivedPageWarning = true;
-        }
-        else if ("iframe" == aData) {
-            receivedIFrameWarning = true;
-        }
-        else if ("form" == aData) {
-            receivedFormWarning = true;
-        }
+  observe: function observe(aSubject, aTopic, aData) {
+
+    if ("page" == aData) {
+      aSubject = aSubject.QueryInterface(Ci.nsIDOMDocument);
+      receivedPageWarning = true;
     }
-};
+    else if ("iframe" == aData) {
+      aSubject = aSubject.QueryInterface(Ci.nsIDOMDocument);
+      receivedIFrameWarning = true;
+    }
+    else if ("form" == aData) {
+      aSubject = aSubject.QueryInterface(Ci.nsIDOMHTMLFormElement);
+      receivedFormWarning = true;
+    }
+    ok(aSubject != null, "a subject was passed");
+  }
+  };
 
 SpecialPowers.addObserver(observer, "insecure-password-field-detected", false);
 

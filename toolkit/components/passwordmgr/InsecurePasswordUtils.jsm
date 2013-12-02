@@ -142,7 +142,7 @@ this.InsecurePasswordUtils = {
     }
 
     if (aForm.action.match(/^http:\/\//)) {
-      Services.obs.notifyObservers(domDoc, "insecure-password-field-detected", "form");
+      Services.obs.notifyObservers(aForm, "insecure-password-field-detected", "form");
       this._sendWebConsoleMessage("InsecureFormActionPasswordsPresent", domDoc);
     }
   },
